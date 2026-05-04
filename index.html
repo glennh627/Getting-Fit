@@ -696,9 +696,27 @@ function renderCreateForm(){
     <div class="splash-back" onclick="showSplashMain()">← Back</div>`;
 }
 
-function selectTheme(id){cTheme=id;renderCreateForm();}
-function selectAG(i){cAG=i;renderCreateForm();}
-function selectAvatar(a){cAvatar=a;renderCreateForm();}
+function selectTheme(id){
+  cTheme=id;
+  _saveFormValues();renderCreateForm();_restoreFormValues();
+}
+function selectAG(i){
+  cAG=i;
+  _saveFormValues();renderCreateForm();_restoreFormValues();
+}
+function selectAvatar(a){
+  cAvatar=a;
+  _saveFormValues();renderCreateForm();_restoreFormValues();
+}
+
+function _saveFormValues(){
+  const fields=['c-name','c-sw','c-gw','c-cal','c-pro','c-carb','c-fat'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el)window['_fv_'+id]=el.value;});
+}
+function _restoreFormValues(){
+  const fields=['c-name','c-sw','c-gw','c-cal','c-pro','c-carb','c-fat'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el&&window['_fv_'+id]!==undefined)el.value=window['_fv_'+id];});
+}
 
 function doCreate(){
   const name=(document.getElementById('c-name')||{}).value||'';
@@ -1153,70 +1171,128 @@ function removeCustomEx(id,event){
 // ── AI Exercise Suggestions ───────────────────────────────────
 function closeSuggest(){document.getElementById('suggest-modal').classList.add('hidden');}
 
+// Smart exercise database organized by muscle group / movement pattern
+const EX_DB={
+  chest:[
+    {name:'Dumbbell Bench Press',desc:'Lower slowly for 3 counts, explode up',sets:'4x',reps:'10-12',muscle:'Chest'},
+    {name:'Incline Dumbbell Press',desc:'30-45 degree angle targets upper chest',sets:'3x',reps:'10-12',muscle:'Upper Chest'},
+    {name:'Chest Flyes',desc:'Keep slight bend in elbows throughout',sets:'3x',reps:'12-15',muscle:'Chest'},
+    {name:'Decline Push-Ups',desc:'Feet elevated to hit upper chest',sets:'3x',reps:'12-15',muscle:'Chest'},
+    {name:'Cable Crossovers',desc:'Squeeze at the center for peak contraction',sets:'3x',reps:'12-15',muscle:'Chest'},
+    {name:'Diamond Push-Ups',desc:'Hands form a diamond shape under chest',sets:'3x',reps:'10-12',muscle:'Chest/Triceps'},
+  ],
+  back:[
+    {name:'Dumbbell Rows',desc:'Row to hip not armpit, squeeze shoulder blade',sets:'4x',reps:'10/side',muscle:'Back'},
+    {name:'Reverse Flyes',desc:'Slight bend in elbows, lead with elbows',sets:'3x',reps:'12-15',muscle:'Rear Delts'},
+    {name:'Lat Pulldowns (band)',desc:'Pull to upper chest, elbows drive down',sets:'3x',reps:'12-15',muscle:'Lats'},
+    {name:'Seated Cable Rows',desc:'Squeeze for 1 second at the peak',sets:'4x',reps:'12',muscle:'Mid Back'},
+    {name:'Superman Hold',desc:'Lift arms and legs simultaneously, hold',sets:'3x',reps:'10-12',muscle:'Lower Back'},
+    {name:'Face Pulls',desc:'Pull to forehead with elbows high',sets:'3x',reps:'15',muscle:'Rear Delts'},
+  ],
+  shoulders:[
+    {name:'Arnold Press',desc:'Rotate palms as you press, full range',sets:'3x',reps:'10-12',muscle:'Shoulders'},
+    {name:'Lateral Raises',desc:'Lead with elbows, slight forward lean',sets:'3x',reps:'12-15',muscle:'Side Delts'},
+    {name:'Front Raises',desc:'Raise to shoulder height, controlled descent',sets:'3x',reps:'12',muscle:'Front Delts'},
+    {name:'Upright Rows',desc:'Pull elbows high and wide',sets:'3x',reps:'12',muscle:'Traps/Shoulders'},
+    {name:'Pike Push-Ups',desc:'Hips high, lower head toward floor',sets:'3x',reps:'10-12',muscle:'Shoulders'},
+    {name:'Overhead Press',desc:'Press straight up, lock out at top',sets:'4x',reps:'10-12',muscle:'Shoulders'},
+  ],
+  biceps:[
+    {name:'Hammer Curls',desc:'Neutral grip, squeeze at top',sets:'3x',reps:'12',muscle:'Biceps/Brachialis'},
+    {name:'Concentration Curls',desc:'Elbow on inner thigh, full range of motion',sets:'3x',reps:'12/side',muscle:'Biceps'},
+    {name:'Preacher Curls',desc:'Upper arm stays on pad throughout',sets:'3x',reps:'10-12',muscle:'Biceps'},
+    {name:'Cable Curls',desc:'Keep elbows pinned to sides',sets:'3x',reps:'12-15',muscle:'Biceps'},
+    {name:'Zottman Curls',desc:'Curl up with palms up, lower with palms down',sets:'3x',reps:'10-12',muscle:'Biceps/Forearms'},
+    {name:'Chin-Ups',desc:'Palms facing you, pull chest to bar',sets:'3x',reps:'8-10',muscle:'Biceps/Back'},
+  ],
+  triceps:[
+    {name:'Overhead Tricep Extension',desc:'Keep elbows pointed forward throughout',sets:'3x',reps:'12',muscle:'Triceps'},
+    {name:'Tricep Kickbacks',desc:'Upper arm parallel to floor, full extension',sets:'3x',reps:'12/side',muscle:'Triceps'},
+    {name:'Close Grip Push-Ups',desc:'Hands shoulder width, elbows track back',sets:'3x',reps:'12-15',muscle:'Triceps'},
+    {name:'Skull Crushers',desc:'Lower bar to forehead, elbows stay fixed',sets:'3x',reps:'10-12',muscle:'Triceps'},
+    {name:'Tricep Dips',desc:'Lean slightly forward for more tricep activation',sets:'3x',reps:'10-12',muscle:'Triceps'},
+    {name:'Cable Pushdowns',desc:'Keep elbows at sides, squeeze at bottom',sets:'3x',reps:'12-15',muscle:'Triceps'},
+  ],
+  legs:[
+    {name:'Bulgarian Split Squats',desc:'Rear foot elevated, drop straight down',sets:'3x',reps:'10/leg',muscle:'Quads/Glutes'},
+    {name:'Romanian Deadlifts',desc:'Hinge at hips, feel hamstring stretch',sets:'3x',reps:'12',muscle:'Hamstrings'},
+    {name:'Walking Lunges',desc:'Step forward, drop knee close to floor',sets:'3x',reps:'12/leg',muscle:'Quads/Glutes'},
+    {name:'Sumo Squats',desc:'Wide stance, toes pointed out 45 degrees',sets:'3x',reps:'15',muscle:'Inner Thighs/Glutes'},
+    {name:'Step-Ups',desc:'Drive through the heel of the front foot',sets:'3x',reps:'10/leg',muscle:'Quads/Glutes'},
+    {name:'Nordic Curls',desc:'Slow eccentric, 4 count on the way down',sets:'3x',reps:'8-10',muscle:'Hamstrings'},
+    {name:'Wall Sit',desc:'Thighs parallel to floor, back flat',sets:'3x',reps:'45 sec',muscle:'Quads'},
+    {name:'Glute Bridges',desc:'Drive hips up, squeeze glutes at top',sets:'3x',reps:'15-20',muscle:'Glutes'},
+  ],
+  core:[
+    {name:'Dead Bug',desc:'Lower back pressed to floor throughout',sets:'3x',reps:'10/side',muscle:'Core'},
+    {name:'Plank Shoulder Taps',desc:'Hips stay square, minimal rotation',sets:'3x',reps:'20 taps',muscle:'Core'},
+    {name:'V-Ups',desc:'Reach hands to feet simultaneously',sets:'3x',reps:'12-15',muscle:'Abs'},
+    {name:'Russian Twists',desc:'Feet off floor for added difficulty',sets:'3x',reps:'20',muscle:'Obliques'},
+    {name:'Hanging Knee Raises',desc:'Control the descent, no swinging',sets:'3x',reps:'12-15',muscle:'Lower Abs'},
+    {name:'Ab Wheel Rollouts',desc:'Brace core hard before rolling out',sets:'3x',reps:'10',muscle:'Core'},
+    {name:'Bicycle Crunches',desc:'Slow and controlled, full rotation',sets:'3x',reps:'20',muscle:'Obliques'},
+  ],
+  cardio:[
+    {name:'Jump Rope',desc:'Land softly on balls of feet',sets:'3x',reps:'3 min',muscle:'Full Body'},
+    {name:'Burpees',desc:'Explosive jump at the top',sets:'3x',reps:'10',muscle:'Full Body'},
+    {name:'Box Jumps',desc:'Land softly with bent knees',sets:'4x',reps:'8-10',muscle:'Legs/Cardio'},
+    {name:'High Knees',desc:'Drive knees up to hip height',sets:'3x',reps:'45 sec',muscle:'Cardio'},
+    {name:'Mountain Climbers',desc:'Keep hips level, drive knees fast',sets:'3x',reps:'30 sec',muscle:'Core/Cardio'},
+    {name:'Sprint Intervals',desc:'All out effort, full recovery between',sets:'6x',reps:'20s on/40s off',muscle:'Cardio'},
+  ],
+};
+
+// Map exercise names to muscle groups
+function getMusclGroup(exerciseName){
+  const n=exerciseName.toLowerCase();
+  if(n.includes('push')&&(n.includes('up')||n.includes('press')||n.includes('bench')))return'chest';
+  if(n.includes('bench')||n.includes('fly')||n.includes('flye')||n.includes('chest'))return'chest';
+  if(n.includes('row')||n.includes('pull')||n.includes('lat')||n.includes('back')||n.includes('deadlift'))return'back';
+  if(n.includes('shoulder')||n.includes('press')&&!n.includes('bench')||n.includes('lateral')||n.includes('front raise')||n.includes('arnold'))return'shoulders';
+  if(n.includes('curl')&&!n.includes('nordic'))return'biceps';
+  if(n.includes('tricep')||n.includes('dip')||n.includes('extension')&&n.includes('tricep')||n.includes('skull'))return'triceps';
+  if(n.includes('squat')||n.includes('lunge')||n.includes('leg')||n.includes('glute')||n.includes('hamstring')||n.includes('calf')||n.includes('nordic')||n.includes('step-up'))return'legs';
+  if(n.includes('plank')||n.includes('crunch')||n.includes('sit-up')||n.includes('ab')||n.includes('core')||n.includes('twist')||n.includes('v-up')||n.includes('dead bug'))return'core';
+  if(n.includes('jog')||n.includes('run')||n.includes('sprint')||n.includes('cardio')||n.includes('bike')||n.includes('walk')||n.includes('hiit')||n.includes('burpee')||n.includes('jump')||n.includes('climber'))return'cardio';
+  return'core'; // fallback
+}
+
 async function getSuggestions(exerciseName, day){
-  const p=profile();
   const t=theme();
   const phase=PHASES[curPhase];
   const dayData=phase.days[day];
 
   document.getElementById('suggest-title').textContent='💡 Alternatives for '+exerciseName;
-  document.getElementById('suggest-subtitle').textContent='AI-powered suggestions · tap + to add any to your workout';
-  document.getElementById('suggest-content').innerHTML=`<div style="text-align:center;padding:30px;color:#bbb"><div style="font-size:28px;margin-bottom:10px">🤔</div><div>Getting smart suggestions...</div></div>`;
+  document.getElementById('suggest-subtitle').textContent='Smart suggestions · tap + to add any to your workout';
+  document.getElementById('suggest-content').innerHTML=`<div style="text-align:center;padding:30px;color:#bbb"><div style="font-size:28px;margin-bottom:10px">🤔</div><div>Finding alternatives...</div></div>`;
   document.getElementById('suggest-modal').classList.remove('hidden');
 
-  const prompt=`You are a fitness coach. Suggest 5 alternative exercises for "${exerciseName}" for someone doing a ${phase.name} phase (${phase.weeks}) workout. Today is ${DAY_FULL[day]||day} which is a ${dayData.label} day.
+  // Small delay for UX feel
+  await new Promise(r=>setTimeout(r,400));
 
-Return ONLY a JSON array with exactly 5 objects. Each object must have these fields:
-- name: exercise name (string)
-- desc: 1 sentence form tip (string)  
-- sets: sets recommendation like "3x" (string)
-- reps: reps or duration like "10-12" or "30 sec" (string)
-- muscle: primary muscle targeted (string)
+  const group=getMusclGroup(exerciseName);
+  const pool=EX_DB[group]||EX_DB.core;
 
-No markdown, no explanation, just the raw JSON array.`;
+  // Filter out the current exercise and pick 5
+  const filtered=pool.filter(e=>e.name.toLowerCase()!==exerciseName.toLowerCase());
+  const shuffled=filtered.sort(()=>Math.random()-.5).slice(0,5);
 
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const data=await res.json();
-    const text=data.content?.[0]?.text||'[]';
-    let suggestions;
-    try{suggestions=JSON.parse(text.replace(/```json|```/g,'').trim());}
-    catch{suggestions=null;}
+  // Add phase-appropriate sets/reps hint
+  const phaseNote=phase.id===1?'(lighter weight, focus on form)':phase.id===2?'(increase weight from Phase 1)':'(go heavy, max effort)';
 
-    if(!suggestions||!suggestions.length){
-      document.getElementById('suggest-content').innerHTML=`<div style="text-align:center;padding:20px;color:#bbb">Could not get suggestions. Try again.</div>`;
-      return;
-    }
-
-    document.getElementById('suggest-content').innerHTML=suggestions.map((s,i)=>`
-      <div class="suggest-card">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-          <div style="flex:1">
-            <div class="suggest-name">${s.name}</div>
-            <div class="suggest-desc">${s.desc}</div>
-            <div class="suggest-meta">💪 ${s.muscle} · ${s.sets} × ${s.reps}</div>
-          </div>
-          <button class="suggest-add-btn" onclick="addSuggestion('${s.name.replace(/'/g,"\\'")}','${(s.desc||'').replace(/'/g,"\\'")}','${s.sets}','${s.reps}','${(s.muscle||'').replace(/'/g,"\\'")}',${i})" id="suggest-add-${i}">+ Add</button>
+  document.getElementById('suggest-content').innerHTML=`
+    <div style="font-size:11px;color:#bbb;margin-bottom:12px;text-align:center">${dayData.label} day · ${phase.name} ${phaseNote}</div>
+    ${shuffled.map((s,i)=>`
+    <div class="suggest-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+        <div style="flex:1">
+          <div class="suggest-name">${s.name}</div>
+          <div class="suggest-desc">${s.desc}</div>
+          <div class="suggest-meta">💪 ${s.muscle} · ${s.sets} × ${s.reps}</div>
         </div>
-      </div>`).join('');
-
-    // Color the add buttons
-    suggestions.forEach((_,i)=>{
-      const btn=document.getElementById('suggest-add-'+i);
-      if(btn){btn.style.borderColor=t.bg;btn.style.color=t.bg;}
-    });
-
-  }catch(e){
-    document.getElementById('suggest-content').innerHTML=`<div style="text-align:center;padding:20px;color:#bbb">Something went wrong. Please try again.</div>`;
-  }
+        <button class="suggest-add-btn" onclick="addSuggestion('${s.name.replace(/'/g,"\\'")}','${s.desc.replace(/'/g,"\\'")}','${s.sets}','${s.reps}','${s.muscle.replace(/'/g,"\\'")}',${i})" id="suggest-add-${i}" style="border-color:${t.bg};color:${t.bg}">+ Add</button>
+      </div>
+    </div>`).join('')}`;
 }
 
 function addSuggestion(name,desc,sets,reps,muscle,idx){
