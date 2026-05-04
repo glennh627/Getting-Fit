@@ -22,7 +22,7 @@ input:focus,textarea:focus,select:focus{outline:none}
 #sync-indicator{position:fixed;top:14px;right:60px;font-size:10px;color:rgba(255,255,255,.7);z-index:11;pointer-events:none;transition:opacity .3s}
 
 #header{position:sticky;top:0;z-index:10;box-shadow:0 3px 16px rgba(0,0,0,.18)}
-#header-top{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px}
+#header-top{display:flex;align-items:center;justify-content:space-between;padding:14px 14px 10px;padding-top:calc(14px + env(safe-area-inset-top,0px))}
 #profile-chip{background:rgba(255,255,255,.15);border-radius:18px;padding:5px 10px;display:flex;align-items:center;gap:6px;cursor:pointer;border:1px solid rgba(255,255,255,.2)}
 #profile-name{font-size:11px;color:#fff;font-weight:bold;line-height:1.2}
 #profile-pts{font-size:10px;color:#F5A623}
