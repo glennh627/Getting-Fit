@@ -1114,22 +1114,23 @@ function renderWorkout(){
   const bonusEarned=done>=5;
   document.getElementById('pts-info').innerHTML=`<span>✅ +${PTS_EX}/exercise</span><span style="${bonusEarned?'color:#F5A623;font-weight:bold':''}">💪 +${PTS_5} for 5${bonusEarned?' ✓':''}</span><span>🏁 +${PTS_WO}/workout</span><span>📅 +${PTS_WK}/week</span>`;
 
-  document.getElementById('exercise-list').innerHTML=allExs.map(ex=>{
+  document.getElementById('exercise-list').innerHTML=allExs.map((ex,idx)=>{
     const isHidden=!!hiddenExs[ex._key];
     const isDone=!isHidden&&!!p.checked[ck(curPhase+1,curDay,ex._key)];
     const isCustom=!ex._isBase;
+    const safeKey=ex._key.replace(/'/g,"\\'");
     return `<div class="ex-row ${isDone?'done':''} ${isCustom?'custom-ex':''} ${isHidden?'hidden-ex':''}" style="${isDone?'border-color:'+t.bg+'22':isCustom&&!isHidden?'border-color:'+t.bg+'55':''}">
       ${isCustom&&!manageMode?`<span class="custom-badge" style="color:${t.bg}">Custom</span>`:''}
-      ${!isHidden?`<div class="ex-check ${isDone?'done':''}" style="${isDone?'background:'+t.bg:''}" onclick="toggleEx('${ex._key}',false)">${isDone?'<span class="ex-check-inner">✓</span>':''}</div>`:`<div style="width:24px;flex-shrink:0"></div>`}
-      <div class="ex-info" onclick="${!isHidden&&!manageMode?'toggleEx(\''+ex._key+'\',false)':''}">
+      ${!isHidden?`<div class="ex-check ${isDone?'done':''}" style="${isDone?'background:'+t.bg:''}" data-exkey="${ex._key}" onclick="toggleExByEl(this)">${isDone?'<span class="ex-check-inner">✓</span>':''}</div>`:`<div style="width:24px;flex-shrink:0"></div>`}
+      <div class="ex-info" data-exkey="${ex._key}" onclick="${!isHidden&&!manageMode?'toggleExByEl(this)':''}">
         <div class="ex-name ${isDone?'done':''}" style="${isHidden?'color:#ccc;text-decoration:line-through':''}">${ex.n}</div>
         ${ex.c?`<div class="ex-cue">${ex.c}</div>`:''}
       </div>
-      <div class="ex-sets-reps" style="${isHidden?'opacity:.4':''}"><div class="ex-sets" style="color:${t.bg}">${ex.s}</div><div class="ex-reps">${ex.r}</div></div>
+      <div class="ex-sets-reps" data-exkey="${ex._key}" onclick="${!isHidden&&!manageMode?'toggleExByEl(this)':''}" style="${isHidden?'opacity:.4':''}"><div class="ex-sets" style="color:${t.bg}">${ex.s}</div><div class="ex-reps">${ex.r}</div></div>
       ${!manageMode&&ex.yt&&!isHidden?`<a href="${ex.yt}" target="_blank" class="yt-btn" onclick="event.stopPropagation()"><svg width="8" height="8" viewBox="0 0 10 10" fill="white"><polygon points="2,1 9,5 2,9"/></svg>YT</a>`:'<div class="yt-placeholder"></div>'}
-      ${!manageMode&&!isHidden?`<button onclick="event.stopPropagation();getSuggestions('${ex.n.replace(/'/g,"\\'")}','${curDay}')" style="flex-shrink:0;background:none;border:none;font-size:16px;cursor:pointer;padding:2px" title="Get AI exercise suggestions">💡</button>`:''}
-      ${manageMode?`<button class="hide-btn ${isHidden?'unhide':''}" onclick="toggleHideEx('${ex._key}')">${isHidden?'Show':'Hide'}</button>`:''}
-      ${manageMode&&isCustom?`<button class="remove-btn" onclick="removeCustomEx('${ex.id||ex._key}',event)" style="margin-left:4px">×</button>`:''}
+      ${!manageMode&&!isHidden?`<button data-exname="${ex.n.replace(/"/g,'&quot;')}" onclick="event.stopPropagation();getSuggestions(this.dataset.exname,'${curDay}')" style="flex-shrink:0;background:none;border:none;font-size:16px;cursor:pointer;padding:2px">💡</button>`:''}
+      ${manageMode?`<button class="hide-btn ${isHidden?'unhide':''}" data-exkey="${ex._key}" onclick="toggleHideByEl(this)">${isHidden?'Show':'Hide'}</button>`:''}
+      ${manageMode&&isCustom?`<button class="remove-btn" data-exid="${ex.id||ex._key}" onclick="removeCustomExByEl(this,event)" style="margin-left:4px">×</button>`:''}
     </div>`;
   }).join('');
 
@@ -1146,6 +1147,19 @@ function renderWorkout(){
 }
 
 function selectDay(d){curDay=d;manageMode=false;renderWorkout();}
+
+function toggleExByEl(el){
+  const key=el.dataset.exkey||el.closest('[data-exkey]')?.dataset.exkey;
+  if(key)toggleEx(key,false);
+}
+function toggleHideByEl(el){
+  const key=el.dataset.exkey;
+  if(key)toggleHideEx(key);
+}
+function removeCustomExByEl(el,event){
+  const id=el.dataset.exid;
+  if(id)removeCustomEx(id,event);
+}
 
 function toggleEx(exKey,isHidden){
   if(isHidden||manageMode)return;
