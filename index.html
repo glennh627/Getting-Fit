@@ -621,7 +621,8 @@ function generateFriendCode(name){
 
 // ── State ─────────────────────────────────────────────────────
 let G=load();
-let curPhase=0,curDay='Mon',curTab='workout';
+const _todayDay=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
+let curPhase=0,curDay=_todayDay,curTab='workout';
 let cAG=0,cTheme='rose',cAvatar='🦋',cSex='male';
 let nutDate=new Date().toISOString().split('T')[0];
 let nutMealType='Breakfast';
@@ -874,7 +875,7 @@ function buildPhaseTabs(){
     </button>`).join('');
 }
 
-function selectPhase(i){curPhase=i;curDay='Mon';manageMode=false;buildPhaseTabs();renderWorkout();}
+function selectPhase(i){curPhase=i;curDay=_todayDay;manageMode=false;buildPhaseTabs();renderWorkout();}
 
 function setTab(tab){
   curTab=tab;
