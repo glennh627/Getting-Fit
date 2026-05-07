@@ -122,6 +122,9 @@ input:focus,textarea:focus,select:focus{outline:none}
 .fp-stat{background:#fff;border-radius:11px;padding:10px 6px;text-align:center}
 .fp-week-days{display:flex;gap:4px;margin-top:8px}
 .fp-award-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+/* Edit Profile Modal */
+#edit-profile-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:flex-end}
+
 /* AI Suggestions Modal */
 #suggest-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;display:flex;align-items:flex-end}
 #suggest-sheet{background:#fff;border-radius:18px 18px 0 0;padding:20px 16px 40px;width:100%;max-width:480px;margin:0 auto;max-height:85vh;overflow-y:auto}
@@ -283,6 +286,16 @@ input:focus,textarea:focus,select:focus{outline:none}
 
   </div>
 
+  <!-- Edit Profile Modal -->
+
+  <div id="edit-profile-modal" class="hidden" onclick="closeEditProfile()">
+    <div id="edit-profile-sheet" style="background:#fff;border-radius:18px 18px 0 0;padding:20px 16px 40px;width:100%;max-width:480px;margin:0 auto;max-height:88vh;overflow-y:auto;position:relative" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div style="font-weight:bold;font-size:17px;margin-bottom:14px">✏️ Edit Profile</div>
+      <div id="edit-profile-content"></div>
+    </div>
+  </div>
+
   <!-- AI Suggestions Modal -->
 
   <div id="suggest-modal" class="hidden" onclick="closeSuggest()">
@@ -331,6 +344,7 @@ input:focus,textarea:focus,select:focus{outline:none}
   <!-- Profile Menu -->
 
   <div id="profile-menu" class="hidden">
+    <div class="menu-item" onclick="openEditProfile()">✏️ Edit Profile</div>
     <div class="menu-item" onclick="openFriendsModal()">👥 Friends & Leaderboard</div>
     <div class="menu-item" onclick="openCodeModal()">💾 Save Progress Code</div>
     <div class="menu-item" onclick="goRestore()">🔄 Restore from Code</div>
@@ -1236,6 +1250,95 @@ function removeCustomEx(id,event){
   const ceKey='p'+(curPhase+1)+'_'+curDay;
   updateProfile(p=>{const ce={...(p.ce||{})};ce[ceKey]=(ce[ceKey]||[]).filter(e=>e.id!==id);p.ce=ce;});
   renderWorkout();
+}
+
+// ── Edit Profile ──────────────────────────────────────────────
+let eAG=0,eTheme='rose',eAvatar='🦋',eSex='male';
+
+function openEditProfile(){
+  closeMenu();
+  const p=profile();if(!p)return;
+  eTheme=p.themeId||'rose';
+  eAvatar=p.avatar||'🦋';
+  eSex=p.sex||'male';
+  eAG=AVATAR_GROUPS.findIndex(ag=>ag.items.includes(eAvatar))||0;
+  if(eAG<0)eAG=0;
+  renderEditForm();
+  document.getElementById('edit-profile-modal').classList.remove('hidden');
+}
+
+function closeEditProfile(){document.getElementById('edit-profile-modal').classList.add('hidden');}
+
+function renderEditForm(){
+  const p=profile();if(!p)return;
+  const t=getTheme(eTheme);
+  const themeHtml=THEMES.map(th=>`<div class="theme-dot" style="background:${th.bg};border-color:${eTheme===th.id?'#1a1a1a':'transparent'}" onclick="eSelectTheme('${th.id}')">${eTheme===th.id?'✓':''}</div>`).join('');
+  const agHtml=AVATAR_GROUPS.map((ag,i)=>`<button style="flex:1;padding:5px 0;border-radius:7px;border:none;background:${eAG===i?'#1a1a1a':'#f0f0f0'};color:${eAG===i?'#fff':'#666'};font-size:11px;cursor:pointer;font-family:inherit" onclick="eSelectAG(${i})">${ag.label}</button>`).join('');
+  const avHtml=AVATAR_GROUPS[eAG].items.map(a=>`<div style="width:34px;height:34px;border-radius:9px;background:${eAvatar===a?t.bg:'#f0f0f0'};display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;border:2px solid ${eAvatar===a?t.bg:'transparent'}" onclick="eSelectAvatar('${a}')">${a}</div>`).join('');
+  const sexHtml=['male','female','other'].map(s=>`<div onclick="eSelectSex('${s}')" style="flex:1;padding:9px 4px;border-radius:9px;border:2px solid ${eSex===s?t.bg:'#eee'};background:${eSex===s?t.bg+'15':'#fff'};color:${eSex===s?t.bg:'#888'};font-size:13px;text-align:center;cursor:pointer;font-weight:${eSex===s?'bold':'normal'}">${s==='male'?'👨 Male':s==='female'?'👩 Female':'🧑 Other'}</div>`).join('');
+
+  document.getElementById('edit-profile-content').innerHTML=`
+    <div style="font-size:10px;color:#999;margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">Name</div>
+    <input id="e-name" value="${p.name||''}" style="width:100%;padding:11px 13px;border-radius:11px;border:1.5px solid #eee;font-size:14px;font-family:inherit;box-sizing:border-box;margin-bottom:12px"/>
+    <div style="font-size:10px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Sex</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">${sexHtml}</div>
+    <div style="font-size:10px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Weight</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1"><div style="font-size:9px;color:#bbb;margin-bottom:3px">Start (lbs)</div><input id="e-sw" type="number" value="${p.sw||''}" style="width:100%;padding:9px 10px;border-radius:9px;border:1.5px solid #eee;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>
+      <div style="flex:1"><div style="font-size:9px;color:#bbb;margin-bottom:3px">Goal (lbs)</div><input id="e-gw" type="number" value="${p.gw||''}" style="width:100%;padding:9px 10px;border-radius:9px;border:1.5px solid #eee;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>
+    </div>
+    <div style="font-size:10px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Daily Nutrition Goals</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div><div style="font-size:9px;color:#bbb;margin-bottom:3px">Calories</div><input id="e-cal" type="number" value="${p.cg||''}" style="width:100%;padding:9px 10px;border-radius:9px;border:1.5px solid #eee;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>
+      <div><div style="font-size:9px;color:#bbb;margin-bottom:3px">Protein (g)</div><input id="e-pro" type="number" value="${p.pg||''}" style="width:100%;padding:9px 10px;border-radius:9px;border:1.5px solid #eee;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>
+      <div><div style="font-size:9px;color:#bbb;margin-bottom:3px">Carbs (g)</div><input id="e-carb" type="number" value="${p.cbg||''}" style="width:100%;padding:9px 10px;border-radius:9px;border:1.5px solid #eee;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>
+      <div><div style="font-size:9px;color:#bbb;margin-bottom:3px">Fat (g)</div><input id="e-fat" type="number" value="${p.fg||''}" style="width:100%;padding:9px 10px;border-radius:9px;border:1.5px solid #eee;font-size:13px;font-family:inherit;box-sizing:border-box"/></div>
+    </div>
+    <div style="font-size:10px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Color Theme</div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin-bottom:12px">${themeHtml}</div>
+    <div style="font-size:10px;color:#999;margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Avatar</div>
+    <div style="display:flex;gap:5px;margin-bottom:7px">${agHtml}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin-bottom:20px">${avHtml}</div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeEditProfile()" style="flex:1;padding:12px;background:#f0f0f0;border:none;border-radius:11px;font-size:14px;font-weight:bold;cursor:pointer;color:#888;font-family:inherit">Cancel</button>
+      <button onclick="saveEditProfile()" style="flex:2;padding:12px;background:${t.bg};border:none;border-radius:11px;font-size:14px;font-weight:bold;cursor:pointer;color:#fff;font-family:inherit">Save Changes</button>
+    </div>`;
+}
+
+function eSelectTheme(id){eTheme=id;_saveEditValues();renderEditForm();_restoreEditValues();}
+function eSelectAG(i){eAG=i;_saveEditValues();renderEditForm();_restoreEditValues();}
+function eSelectAvatar(a){eAvatar=a;_saveEditValues();renderEditForm();_restoreEditValues();}
+function eSelectSex(s){eSex=s;_saveEditValues();renderEditForm();_restoreEditValues();}
+
+function _saveEditValues(){
+  const fields=['e-name','e-sw','e-gw','e-cal','e-pro','e-carb','e-fat'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el)window['_ev_'+id]=el.value;});
+}
+function _restoreEditValues(){
+  const fields=['e-name','e-sw','e-gw','e-cal','e-pro','e-carb','e-fat'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el&&window['_ev_'+id]!==undefined)el.value=window['_ev_'+id];});
+}
+
+function saveEditProfile(){
+  const name=(document.getElementById('e-name').value||'').trim();
+  if(!name)return;
+  updateProfile(p=>{
+    p.name=name;
+    p.avatar=eAvatar;
+    p.themeId=eTheme;
+    p.sex=eSex;
+    p.sw=document.getElementById('e-sw').value||p.sw;
+    p.gw=document.getElementById('e-gw').value||p.gw;
+    p.cg=Number(document.getElementById('e-cal').value)||p.cg||2000;
+    p.pg=Number(document.getElementById('e-pro').value)||p.pg||150;
+    p.cbg=Number(document.getElementById('e-carb').value)||p.cbg||200;
+    p.fg=Number(document.getElementById('e-fat').value)||p.fg||65;
+  });
+  closeEditProfile();
+  buildNav();
+  buildPhaseTabs();
+  refreshHeader();
+  renderCurrentTab();
 }
 
 // ── AI Exercise Suggestions ───────────────────────────────────
